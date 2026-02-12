@@ -68,39 +68,39 @@ while True:
             pygame.quit()
             sys.exit()
 
-keys = pygame.key.get_pressed()
-if keys[pygame.K_LEFT] and basketX > 0:
-    basketX -= 10
-if keys[pygame.K_RIGHT] and basketX < screen_width - basket_width:
-    basketX += 10
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and basketX > 0:
+        basketX -= 10
+    if keys[pygame.K_RIGHT] and basketX < screen_width - basket_width:
+        basketX += 10
 
-itemY += itemSpeed
+    itemY += itemSpeed
 
-if score > 5 and score % 5 == 0:
-    itemSpeed = min(10, itemSpeed + 1)
-    basket_width = max(50, basket_width - 10)
-if score > 10 and score % 10 == 0:
-    itemSpeed = min(15, itemSpeed + 1)
-    basket_width = max(30, basket_width - 10)
-if score > 15 and score % 15 == 0:
-    itemSpeed = min(20, itemSpeed + 1)
-    basket_width = max(20, basket_width - 10)
-if score > 20 and score % 20 == 0:
-    itemSpeed = min(25, itemSpeed + 1)
-    basket_width = max(10, basket_width - 10)
+    if score > 5 and score % 5 == 0:
+        itemSpeed = min(10, itemSpeed + 1)
+        basket_width = max(50, basket_width - 10)
+    if score > 10 and score % 10 == 0:
+        itemSpeed = min(15, itemSpeed + 1)
+        basket_width = max(30, basket_width - 10)
+    if score > 15 and score % 15 == 0:
+        itemSpeed = min(20, itemSpeed + 1)
+        basket_width = max(20, basket_width - 10)
+    if score > 20 and score % 20 == 0:
+        itemSpeed = min(25, itemSpeed + 1)
+        basket_width = max(10, basket_width - 10)
 
-if itemY >= basketY and basketX < itemX < basketX + basket_width:
-    score += 1
-    itemX = random.randint(0, screen_width - itemRadius)
-    itemY = 0
-elif itemY > screen_height:
-    itemX = random.randint(0, screen_width - itemRadius)
-    itemY = 0
+    if itemY >= basketY and basketX < itemX < basketX + basket_width:
+        score += 1
+        itemX = random.randint(0, screen_width - itemRadius)
+        itemY = 0
+    elif itemY > screen_height:
+        itemX = random.randint(0, screen_width - itemRadius)
+        itemY = 0
 
-draw_basket(basketX, basketY)
-draw_item(itemX, itemY)
-display_score(score)
-display_timer(second)
+    draw_basket(basketX, basketY)
+    draw_item(itemX, itemY)
+    display_score(score)
+    display_timer(second)
 
-pygame.display.flip()
-clock.tick(30)
+    pygame.display.flip()
+    clock.tick(30)
