@@ -4,6 +4,9 @@ import sys
 
 pygame.init()
 
+basket_width = 100
+basket_height = 80
+
 screen_width = 800
 screen_height = 600
 
@@ -14,12 +17,10 @@ orange = (255, 165, 0)
 background_color = (188, 184, 138)
 
 #falling items
-itemSpeed = 5
+itemSpeed = 10
 itemRadius = 15
 
-#basket
-basket_width = 100
-basket_height = 20
+
 
 #timer
 startTime = 45
@@ -27,6 +28,12 @@ startTime = 45
 #display
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Catch the treasure!")
+
+# load images after display initialized so convert/convert_alpha work
+basket = pygame.image.load("Basket.jpg").convert_alpha()
+background = pygame.image.load("background.jpg").convert()
+basket = pygame.transform.scale(basket, (basket_width, basket_height))
+background = pygame.transform.scale(background, (screen_width, screen_height))
 
 basketX = screen_width // 2 - basket_width // 2
 basketY = screen_height - basket_height - 10
@@ -37,9 +44,6 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 36)
 
 start_ticks = pygame.time.get_ticks() 
-def draw_basket(x, y):
-    pygame.draw.rect(screen, magenta, (x, y, basket_width, basket_height))
-     # Start the timer
 
 def draw_item(x, y):
     pygame.draw.circle(screen, pink, (x, y), itemRadius)
@@ -55,7 +59,6 @@ def display_timer(seconds):
 #main game loop
 
 while True:
-    screen.fill(background_color)
 
     second = startTime - (pygame.time.get_ticks() - start_ticks) // 1000
     if second <= 0:
@@ -70,34 +73,28 @@ while True:
 
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT] and basketX > 0:
-        basketX -= 10
+        basketX -= 12
     if keys[pygame.K_RIGHT] and basketX < screen_width - basket_width:
-        basketX += 10
+        basketX += 12
 
     itemY += itemSpeed
-
-    if score > 5 and score % 5 == 0:
-        itemSpeed = min(10, itemSpeed + 1)
-        basket_width = max(50, basket_width - 10)
-    if score > 10 and score % 10 == 0:
-        itemSpeed = min(15, itemSpeed + 1)
-        basket_width = max(30, basket_width - 10)
-    if score > 15 and score % 15 == 0:
-        itemSpeed = min(20, itemSpeed + 1)
-        basket_width = max(20, basket_width - 10)
-    if score > 20 and score % 20 == 0:
-        itemSpeed = min(25, itemSpeed + 1)
-        basket_width = max(10, basket_width - 10)
-
-    if itemY >= basketY and basketX < itemX < basketX + basket_width:
+    item_rect = pygame.Rect(itemX - itemRadius, itemY - itemRadius, itemRadius * 2, itemRadius * 2)
+    basket_rect = pygame.Rect(basketX, basketY, basket_width, basket_height)
+    
+    if basket_rect.colliderect(item_rect):
         score += 1
-        itemX = random.randint(0, screen_width - itemRadius)
-        itemY = 0
-    elif itemY > screen_height:
-        itemX = random.randint(0, screen_width - itemRadius)
-        itemY = 0
+        itemY = -20
+        itemX = random.randint(itemRadius, screen_width - itemRadius)
+        if score % 5 == 0:
+            itemSpeed += 1
 
-    draw_basket(basketX, basketY)
+    if itemY > screen_height:
+        itemX = random.randint(0, screen_width - itemRadius)
+        itemY = -50
+
+    screen.blit(background, (0, 0))
+    screen.blit(basket, (basketX, basketY))
+
     draw_item(itemX, itemY)
     display_score(score)
     display_timer(second)
