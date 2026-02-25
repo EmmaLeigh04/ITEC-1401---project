@@ -1,4 +1,5 @@
 import pygame
+import asyncio
 import random
 import sys
 
@@ -46,27 +47,37 @@ item_types = [
     (junk2, -10, "Slimy Seaweed")
 ]
 
-font = pygame.font.SysFont("Dokdo", 36)
-small_font = pygame.font.SysFont("Dokdo", 24)
+font = pygame.font.SysFont("Annai MN", 36)
+small_font = pygame.font.SysFont("Annai MN", 24)
 
 def show_instructions():
     waiting = True
-    while waiting:
-        screen.fill(palePink)
-        title = font.render("Catch the Treasure!", True, daret)
-        screen.blit(title, (screen_width // 2 - 100, 50))
 
-        # items and their values
-        y_offset = 120
+    overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 150))
+
+    pop_w, pop_h = 500, 500
+    popup = pygame.Surface((pop_w, pop_h), pygame.SRCALPHA)
+    popup.fill(palePink + (230,))
+
+    while waiting:
+        screen.blit(background, (0, 0))
+        screen.blit(overlay, (0, 0))
+
+        title_surf = font.render("Catch the Treasure!", True, daret)
+        popup.blit(title_surf, (pop_w // 2 - title_surf.get_width() // 2, 30))
+
+        y_offset = 100
         for img, val, name in item_types:
-            screen.blit(img, (250, y_offset))
+            popup.blit(img, (80, y_offset))
             color = lightMauve if val > 0 else darkMauve
-            txt = small_font.render(f"{name}: {val} points", True, color)
-            screen.blit(txt, (310, y_offset + 5))
-            y_offset += 60
-            
-        instructions = font.render("Collect as many treatures as possible, Avoid the junk! Press SPACE to start!", True, daret)
-        screen.blit(instructions, (screen_width // 2 - 140, 480))
+            txt = small_font.render(f"{name}: {val} pts", True, color)
+            popup.blit(txt, (160, y_offset + 15))
+            y_offset += 70
+
+        instr = small_font.render("Press SPACE to start", True, (daret))
+        popup.blit(instr, (pop_w // 2 - instr.get_width() // 2, 440))
+        screen.blit(popup, ((screen_width - pop_w) // 2, (screen_height - pop_h) // 2))
 
         pygame.display.flip()
 
@@ -76,15 +87,8 @@ def show_instructions():
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 waiting = False
+        clock.tick(30)
 
-basketX = screen_width // 2 - basket_width // 2
-basketY = screen_height - basket_height - 10
-score = 0
-clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 36)
-start_ticks = pygame.time.get_ticks() 
-
-items = []
 
 def spawn_item():
     entry = random.choice(item_types)
@@ -94,8 +98,6 @@ def spawn_item():
     x = random.randint(0, screen_width - itemSize)
     return {"x": x, "y": -50, "img": img, "value": value}
 
-for _ in range(4):
-    items.append(spawn_item())
 
 def display_ui(score, timer):
     score_text = font.render(f"Score: {score}", True, (255, 255, 255))
@@ -103,50 +105,75 @@ def display_ui(score, timer):
     screen.blit(score_text, (10, 10))
     screen.blit(timer_text, (screen_width - 150, 10))
 
+basketX = screen_width // 2 - basket_width // 2
+basketY = screen_height - basket_height - 10
+score = 0
+clock = pygame.time.Clock()
+font = pygame.font.SysFont(None, 36)
+# start_ticks will be set after the instructions screen so the timer
+# doesn't count down while the player is reading the popup
+start_ticks = None
+
+items = []
+
+for _ in range(4):
+    items.append(spawn_item())
+
+# show starting instructions before the game begins
+show_instructions()
+
+# start the game timer now that the instructions have been dismissed
+start_ticks = pygame.time.get_ticks()
+
 #main game loop
+async def main_game_loop():
 
-while True:
+    global basketX, basketY, score, items, start_ticks
 
-    second = startTime - (pygame.time.get_ticks() - start_ticks) // 1000
-    if second <= 0:
-        print(f"Time's up! Your final score is: {score}")
-        pygame.quit()
-        sys.exit()
+    while True:
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        second = startTime - (pygame.time.get_ticks() - start_ticks) // 1000
+        if second <= 0:
+            print(f"Time's up! Your final score is: {score}")
             pygame.quit()
             sys.exit()
 
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and basketX > 0:
-        basketX -= 15
-    if keys[pygame.K_RIGHT] and basketX < screen_width - basket_width:
-        basketX += 15
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and basketX > 0:
+            basketX -= 15
+        if keys[pygame.K_RIGHT] and basketX < screen_width - basket_width:
+            basketX += 15
 
 
-    basket_rect = pygame.Rect(basketX, basketY, basket_width, basket_height)
+        basket_rect = pygame.Rect(basketX, basketY, basket_width, basket_height)
 
-    for item in items[:]:
-        item["y"] += itemSpeed
-        item_rect = pygame.Rect(item["x"], item["y"], itemSize, itemSize)
+        for item in items[:]:
+            item["y"] += itemSpeed
+            item_rect = pygame.Rect(item["x"], item["y"], itemSize, itemSize)
 
-        if basket_rect.colliderect(item_rect):
-            score += item["value"]
-            items.remove(item)
-            items.append(spawn_item())
+            if basket_rect.colliderect(item_rect):
+                score += item["value"]
+                items.remove(item)
+                items.append(spawn_item())
 
-        elif item["y"] > screen_height:
-            items.remove(item)
-            items.append(spawn_item())
+            elif item["y"] > screen_height:
+                items.remove(item)
+                items.append(spawn_item())
 
-    show_instructions()
-    screen.blit(background, (0, 0))
-    screen.blit(basket, (basketX, basketY))
+        screen.blit(background, (0, 0))
+        screen.blit(basket, (basketX, basketY))
 
-    for item in items:
-        screen.blit(item["img"], (item["x"], item["y"]))
+        for item in items:
+            screen.blit(item["img"], (item["x"], item["y"]))
 
-    display_ui(score, second)
-    pygame.display.flip()
-    clock.tick(30)
+        display_ui(score, second)
+        pygame.display.flip()
+        clock.tick(30)
+        await asyncio.sleep(0)
+
+asyncio.run(main_game_loop())
